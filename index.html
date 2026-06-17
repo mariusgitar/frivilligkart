@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frivillig Tønsberg</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+html,body{overflow-x:hidden}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0f172a;--ink-2:#334155;--ink-3:#64748b;--ink-4:#94a3b8;--ink-5:#cbd5e1;
+  --bg:#f0f4f8;--white:#fff;
+  --blue:#3b82f6;--blue-soft:#eff6ff;--blue-mid:#bfdbfe;--blue-dark:#1d4ed8;
+  --border:#e8edf2;--r:14px;--r-sm:8px;
+  --shadow:0 2px 8px rgba(15,23,42,.06),0 0 0 1px rgba(15,23,42,.04);
+  --shadow-h:0 8px 24px rgba(15,23,42,.1),0 0 0 1px rgba(59,130,246,.15);
+  --shadow-m:0 24px 64px rgba(15,23,42,.18),0 0 0 1px rgba(15,23,42,.06);
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6;min-height:100vh}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:300;background:rgba(255,255,255,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);height:58px;padding:0 16px;display:flex;align-items:center;gap:12px;}
+.nav-logo{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;color:var(--ink);text-decoration:none;flex-shrink:0;letter-spacing:-.02em;}
+.nav-logo-mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 8px rgba(59,130,246,.35);}
+.nav-logo-text{display:inline;}
+.nav-right{display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:auto;}
+@media(max-width:480px){.nav-logo-text{display:none;}.nav-right .btn-outline{display:none;}}
+
+/* BTNS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--r-sm);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;}
+.btn-ghost{background:none;color:var(--ink-3);}
+.btn-ghost:hover{background:var(--bg);color:var(--ink);}
+.btn-outline{background:white;color:var(--ink-2);border:1.5px solid var(--border);}
+.btn-outline:hover{border-color:var(--blue);color:var(--blue);}
+.btn-blue{background:var(--blue);color:white;box-shadow:0 2px 8px rgba(59,130,246,.3);}
+.btn-blue:hover{background:var(--blue-dark);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-red{background:#fef2f2;color:#dc2626;border:none;}
+.btn-red:hover{background:#fee2e2;}
+
+/* HERO */
+.hero{background:white;border-bottom:1px solid var(--border);padding:32px 20px 28px;}
+.hero-inner{max-width:1120px;margin:0 auto;}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:24px;}
+.hero-left .tag{display:inline-flex;align-items:center;gap:5px;background:var(--blue-soft);color:var(--blue);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:20px;margin-bottom:12px;}
+.hero-left h1{font-size:clamp(22px,3.5vw,36px);font-weight:700;letter-spacing:-.025em;line-height:1.2;color:var(--ink);margin-bottom:8px;}
+.hero-left h1 span{color:var(--blue);}
+.hero-left p{font-size:14px;color:var(--ink-3);max-width:420px;line-height:1.7;}
+.hero-stats{display:flex;gap:28px;align-self:flex-end;}
+.stat{text-align:center;}
+.stat-n{font-size:30px;font-weight:700;color:var(--ink);letter-spacing:-.03em;line-height:1;}
+.stat-l{font-size:11px;color:var(--ink-4);margin-top:4px;font-weight:500;}
+.hero-search{display:flex;align-items:center;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r);padding:0 14px;gap:10px;max-width:640px;transition:all .2s;}
+.hero-search:focus-within{background:white;border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.12);}
+.hero-search input{flex:1;border:none;outline:none;background:none;font-family:inherit;font-size:14px;color:var(--ink);padding:12px 0;min-width:0;}
+.hero-search input::placeholder{color:var(--ink-4);}
+@media(max-width:600px){.hero-stats{display:none;}.hero-top{margin-bottom:20px;}}
+
+/* AI BANNER */
+.ai-bwrap{max-width:1120px;margin:0 auto;padding:14px 16px 0;}
+.ai-banner{background:linear-gradient(135deg,var(--blue-soft),#f0f9ff);border:1.5px solid var(--blue-mid);border-radius:var(--r);padding:14px 18px;display:none;align-items:flex-start;gap:12px;}
+.ai-banner.on{display:flex;}
+.ai-bico{width:32px;height:32px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.ai-blabel{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin-bottom:3px;}
+.ai-btext{font-size:13px;color:var(--ink-2);line-height:1.6;}
+.ai-bclose{background:none;border:none;cursor:pointer;color:var(--ink-4);font-size:18px;padding:4px;flex-shrink:0;}
+@media(max-width:768px){.ai-bwrap{padding:12px 12px 0;}}
+
+/* MOBILE CATS */
+.mob-cats{display:none;gap:8px;overflow-x:auto;padding:12px 12px 0;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.mob-cats::-webkit-scrollbar{display:none;}
+.mob-views{display:none;padding:8px 12px 0;gap:6px;}
+.mob-vbtn{flex:1;padding:8px 6px;border-radius:var(--r-sm);border:1.5px solid var(--border);background:white;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink-3);transition:all .15s;text-align:center;}
+.mob-vbtn.on{background:var(--blue);color:white;border-color:var(--blue);box-shadow:0 2px 6px rgba(59,130,246,.3);}
+.mob-vbtn:not(.on):hover{border-color:var(--blue);color:var(--blue);}
+@media(max-width:768px){.mob-cats{display:flex;}.mob-views{display:flex;}}
+
+/* PAGE */
+.page{max-width:1120px;margin:0 auto;padding:20px 16px 80px;display:grid;grid-template-columns:220px 1fr;gap:18px;align-items:start;}
+@media(max-width:768px){.page{grid-template-columns:1fr;padding:16px 12px 80px;}.sidebar{display:none;}}
+
+/* SIDEBAR */
+.sidebar{background:white;border:1px solid var(--border);border-radius:var(--r);padding:6px;position:sticky;top:74px;}
+.sb-sec{padding:12px 10px 4px;}
+.sb-lbl{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-4);padding:0 4px;margin-bottom:6px;}
+.crow{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:10px;border:none;background:none;cursor:pointer;font-family:inherit;font-size:13px;color:var(--ink-2);transition:all .15s;text-align:left;}
+.crow:hover{background:var(--bg);}
+.crow.on{background:var(--blue-soft);color:var(--blue);font-weight:600;}
+.crow.on .cnum{color:var(--blue-mid);}
+.cem{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.cnum{margin-left:auto;font-size:11px;color:var(--ink-5);font-weight:600;}
+.sb-div{height:1px;background:var(--border);margin:8px 10px;}
+.vrow{display:flex;gap:4px;padding:4px;}
+.vbtn{flex:1;padding:7px 6px;border-radius:8px;border:none;background:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;color:var(--ink-3);transition:all .15s;text-align:center;}
+.vbtn.on{background:var(--blue);color:white;box-shadow:0 2px 6px rgba(59,130,246,.3);}
+.vbtn:not(.on):hover{background:var(--bg);}
+
+/* CONTENT */
+.ctop{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap;}
+.rlbl{font-size:13px;color:var(--ink-3);}
+.rlbl strong{color:var(--ink);font-weight:700;}
+
+/* GRID */
+#grid-view{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:14px;}
+@media(max-width:600px){#grid-view{grid-template-columns:1fr;}}
+.card{background:white;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:all .22s;}
+.card:hover{box-shadow:var(--shadow-h);border-color:var(--blue-mid);transform:translateY(-2px);}
+.card-img{height:120px;display:flex;align-items:center;justify-content:center;font-size:44px;position:relative;}
+.card-body{padding:16px 18px 18px;}
+.card-top2{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.cpill{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:20px;}
+.card-name{font-size:16px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin-bottom:6px;line-height:1.3;}
+.card-desc{font-size:12.5px;color:var(--ink-3);line-height:1.55;margin-bottom:14px;}
+.card-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--bg);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--ink-3);font-weight:500;}
+.card-foot{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.cweb{font-size:12px;color:var(--blue);display:flex;align-items:center;gap:4px;text-decoration:none;font-weight:500;}
+.cweb:hover{text-decoration:underline;}
+
+/* LIST */
+#list-view{display:none;background:white;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.lrow{display:grid;grid-template-columns:44px 1fr auto auto;align-items:center;gap:14px;padding:13px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;}
+.lrow:last-child{border-bottom:none;}
+.lrow:hover{background:var(--bg);}
+.lem{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.lname{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:2px;}
+.lsub{font-size:12px;color:var(--ink-4);}
+.lpill{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+.lemail{font-size:12px;color:var(--ink-4);white-space:nowrap;}
+@media(max-width:560px){.lemail{display:none;}.lrow{grid-template-columns:38px 1fr auto;}}
+
+/* MAP */
+#map-view{display:none;background:white;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;height:520px;position:relative;}
+#map-el{width:100%;height:100%;}
+.map-popup-name{font-weight:700;font-size:14px;margin-bottom:4px;}
+.map-popup-cat{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;}
+.map-popup-desc{font-size:12px;color:#475569;line-height:1.5;margin-bottom:6px;}
+.map-popup-link{font-size:12px;color:#3b82f6;text-decoration:none;}
+.map-popup-link:hover{text-decoration:underline;}
+
+/* EMPTY */
+.empty{text-align:center;padding:72px 24px;display:none;}
+.empty-ico{font-size:48px;margin-bottom:16px;opacity:.5;}
+.empty h3{font-size:16px;font-weight:600;color:var(--ink-2);margin-bottom:6px;}
+.empty p{font-size:13px;color:var(--ink-4);}
+
+/* CAT COLORS */
+.ci{background:#dcfce7;color:#15803d;}.ci-bg{background:#f0fdf4;}
+.ck{background:#f3e8ff;color:#7e22ce;}.ck-bg{background:#faf5ff;}
+.cn{background:#ccfbf1;color:#0f766e;}.cn-bg{background:#f0fdfa;}
+.cf{background:#ffedd5;color:#c2410c;}.cf-bg{background:#fff7ed;}
+.cu{background:#fef9c3;color:#a16207;}.cu-bg{background:#fefce8;}
+.cs{background:#dbeafe;color:#1d4ed8;}.cs-bg{background:#eff6ff;}
+
+/* MODALS */
+.bd{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:400;align-items:flex-end;justify-content:center;padding:0;}
+@media(min-width:600px){.bd{align-items:center;padding:16px;}}
+.bd.on{display:flex;}
+.modal{background:white;border-radius:20px 20px 0 0;width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-m);animation:popIn .18s cubic-bezier(.34,1.4,.64,1);}
+@media(min-width:600px){.modal{border-radius:20px;max-width:var(--mw,500px);}}
+@keyframes popIn{from{opacity:0;transform:scale(.97) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+/* DETAIL */
+#det-bd .modal{--mw:500px;padding:0;overflow:hidden;}
+.det-top{padding:26px 26px 20px;}
+.det-hero{height:100px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:48px;margin-bottom:18px;}
+.det-meta{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.det-title{font-size:22px;font-weight:700;letter-spacing:-.025em;color:var(--ink);}
+.det-desc{font-size:13.5px;color:var(--ink-3);line-height:1.7;margin-top:10px;}
+.det-div{height:1px;background:var(--border);}
+.det-body{padding:18px 26px;display:flex;flex-direction:column;gap:10px;}
+.drow{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--ink-2);}
+.drico{font-size:16px;width:22px;text-align:center;flex-shrink:0;}
+.drow a{color:var(--blue);text-decoration:none;font-weight:500;}
+.drow a:hover{text-decoration:underline;}
+.det-foot{padding:16px 26px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;}
+
+/* ADMIN */
+#adm-bd .modal{--mw:700px;}
+.adm-head{position:sticky;top:0;background:white;z-index:5;padding:22px 28px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:16px;}
+.adm-head h2{font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin-bottom:3px;}
+.adm-head p{font-size:12.5px;color:var(--ink-3);}
+.closex{width:34px;height:34px;border-radius:9px;background:var(--bg);border:none;cursor:pointer;font-size:18px;color:var(--ink-3);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .12s;}
+.closex:hover{background:var(--border);color:var(--ink);}
+.adm-body{padding:24px 28px 28px;}
+.adm-foot{position:sticky;bottom:0;background:white;padding:14px 28px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+
+/* AI PANEL */
+.aipanel{background:linear-gradient(135deg,#eff6ff,#f0f9ff);border:1.5px solid var(--blue-mid);border-radius:var(--r);padding:18px 20px;margin-bottom:26px;}
+.aipanel-head{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.aipanel-head h3{font-size:13px;font-weight:700;color:var(--blue);}
+.ai-badge{background:var(--blue);color:white;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:4px;}
+.aipanel-sub{font-size:12.5px;color:var(--ink-3);margin-bottom:14px;line-height:1.6;}
+.ai-irow{display:flex;gap:8px;margin-bottom:10px;}
+.ai-inp{flex:1;padding:9px 13px;border:1.5px solid var(--blue-mid);border-radius:var(--r-sm);font-family:inherit;font-size:13px;color:var(--ink);outline:none;background:white;transition:border-color .15s;}
+.ai-inp:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.1);}
+.ai-inp::placeholder{color:var(--ink-4);}
+.ai-sep{display:flex;align-items:center;gap:10px;margin:12px 0;font-size:11px;color:var(--ink-4);font-weight:600;letter-spacing:.05em;text-transform:uppercase;}
+.ai-sep::before,.ai-sep::after{content:'';flex:1;height:1px;background:var(--blue-mid);}
+.ai-steps{display:none;flex-direction:column;gap:5px;margin-top:12px;}
+.ai-steps.on{display:flex;}
+.step{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-3);}
+.sdot{width:20px;height:20px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;color:var(--ink-3);transition:all .3s;}
+.step.active .sdot{background:var(--blue-soft);color:var(--blue);animation:stp 1s infinite;}
+.step.done .sdot{background:#dcfce7;color:#16a34a;}
+.step.done{color:var(--ink-2);}
+@keyframes stp{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,.3)}50%{box-shadow:0 0 0 4px rgba(59,130,246,.15)}}
+
+/* FORM */
+.fsec{margin-bottom:22px;}
+.fstitle{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-4);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:560px){.frow{grid-template-columns:1fr;}}
+.fg{margin-bottom:14px;}
+.fg label{display:block;font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:5px;}
+.field{width:100%;padding:9px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:inherit;font-size:13px;color:var(--ink);outline:none;background:white;transition:all .15s;}
+.field:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.1);}
+textarea.field{resize:vertical;min-height:78px;line-height:1.55;}
+select.field{cursor:pointer;}
+.field-flash{border-color:#22c55e!important;background:#f0fdf4;transition:all .4s;}
+.ai-micro{display:inline-flex;align-items:center;gap:4px;background:none;border:1.5px solid var(--blue-mid);border-radius:6px;color:var(--blue);padding:4px 9px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;margin-top:5px;}
+.ai-micro:hover{background:var(--blue-soft);}
+
+/* SPINNER & TOAST */
+.spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:rot .6s linear infinite;vertical-align:middle;flex-shrink:0;}
+@keyframes rot{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:white;padding:11px 20px;border-radius:var(--r-sm);font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:9999;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="#" onclick="return false">
+    <div class="nav-logo-mark">🗺</div>
+    <span class="nav-logo-text">Frivillig Tønsberg</span>
+  </a>
+  <div class="nav-right">
+    <button class="btn btn-outline" onclick="openAdmin()">Admin</button>
+    <button class="btn btn-blue" onclick="openAdd()">+ Legg til</button>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-top">
+      <div class="hero-left">
+        <div class="tag">📍 Tønsberg kommune</div>
+        <h1>Finn din plass i<br><span>frivilligheten</span></h1>
+        <p>Søk blant lag og foreninger — bruk fritekst eller filtrer på kategori.</p>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><div class="stat-n" id="s-total">20</div><div class="stat-l">Foreninger</div></div>
+        <div class="stat"><div class="stat-n">6</div><div class="stat-l">Kategorier</div></div>
+        <div class="stat"><div class="stat-n">~8k</div><div class="stat-l">Frivillige</div></div>
+      </div>
+    </div>
+    <div class="hero-search">
+      <span style="color:var(--ink-4);font-size:16px;flex-shrink:0">🔍</span>
+      <input type="text" id="srch" placeholder="Søk etter forening, aktivitet eller sted…" oninput="handleSearch()">
+    </div>
+  </div>
+</div>
+
+<div class="ai-bwrap">
+  <div class="ai-banner" id="ai-banner">
+    <div class="ai-bico">✨</div>
+    <div style="flex:1"><div class="ai-blabel">KI-anbefaling</div><div class="ai-btext" id="ai-btext"></div></div>
+    <button class="ai-bclose" onclick="document.getElementById('ai-banner').classList.remove('on');aiFiltered=null;render()">✕</button>
+  </div>
+</div>
+
+<div class="mob-cats" id="mob-cats">
+  <button class="btn btn-blue btn-sm" data-c="alle" onclick="mobCat(this,'alle')">Alle</button>
+  <button class="btn btn-outline btn-sm" data-c="idrett" onclick="mobCat(this,'idrett')">⚽ Idrett</button>
+  <button class="btn btn-outline btn-sm" data-c="kultur" onclick="mobCat(this,'kultur')">🎭 Kultur</button>
+  <button class="btn btn-outline btn-sm" data-c="natur" onclick="mobCat(this,'natur')">🌿 Natur</button>
+  <button class="btn btn-outline btn-sm" data-c="frivillighet" onclick="mobCat(this,'frivillighet')">🤝 Frivillighet</button>
+  <button class="btn btn-outline btn-sm" data-c="ungdom" onclick="mobCat(this,'ungdom')">🌟 Ungdom</button>
+  <button class="btn btn-outline btn-sm" data-c="senior" onclick="mobCat(this,'senior')">☀️ Senior</button>
+</div>
+<div class="mob-views" id="mob-views">
+  <button class="mob-vbtn on" id="mob-vbtn-grid" onclick="mobView(this,'grid')">⊞ Kort</button>
+  <button class="mob-vbtn" id="mob-vbtn-list" onclick="mobView(this,'list')">☰ Liste</button>
+  <button class="mob-vbtn" id="mob-vbtn-map" onclick="mobView(this,'map')">🗺 Kart</button>
+</div>
+
+<div class="page">
+  <aside class="sidebar">
+    <div class="sb-sec">
+      <div class="sb-lbl">Kategori</div>
+      <button class="crow on" data-c="alle" onclick="filterCat(this,'alle')"><div class="cem" style="background:#f1f5f9">🌐</div>Alle<span class="cnum" id="cn-alle"></span></button>
+      <button class="crow" data-c="idrett" onclick="filterCat(this,'idrett')"><div class="cem ci">⚽</div>Idrett<span class="cnum" id="cn-idrett"></span></button>
+      <button class="crow" data-c="kultur" onclick="filterCat(this,'kultur')"><div class="cem ck">🎭</div>Kultur<span class="cnum" id="cn-kultur"></span></button>
+      <button class="crow" data-c="natur" onclick="filterCat(this,'natur')"><div class="cem cn">🌿</div>Natur & friluft<span class="cnum" id="cn-natur"></span></button>
+      <button class="crow" data-c="frivillighet" onclick="filterCat(this,'frivillighet')"><div class="cem cf">🤝</div>Frivillighet<span class="cnum" id="cn-frivillighet"></span></button>
+      <button class="crow" data-c="ungdom" onclick="filterCat(this,'ungdom')"><div class="cem cu">🌟</div>Ungdom<span class="cnum" id="cn-ungdom"></span></button>
+      <button class="crow" data-c="senior" onclick="filterCat(this,'senior')"><div class="cem cs">☀️</div>Senior<span class="cnum" id="cn-senior"></span></button>
+    </div>
+    <div class="sb-div"></div>
+    <div class="sb-sec" style="padding-bottom:10px">
+      <div class="sb-lbl">Visning</div>
+      <div class="vrow">
+        <button class="vbtn on" id="vb-grid" onclick="setView('grid')">⊞ Kort</button>
+        <button class="vbtn" id="vb-list" onclick="setView('list')">☰ Liste</button>
+        <button class="vbtn" id="vb-map" onclick="setView('map')">🗺 Kart</button>
+      </div>
+    </div>
+  </aside>
+
+  <div>
+    <div class="ctop"><div class="rlbl" id="rlbl"></div></div>
+    <div id="grid-view"></div>
+    <div id="list-view"></div>
+    <div id="map-view"><div id="map-el"></div></div>
+    <div class="empty" id="empty"><div class="empty-ico">🔍</div><h3>Ingen treff</h3><p>Prøv et annet filter eller søk</p></div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="bd" id="det-bd" onclick="closeBD(event,'det-bd')">
+  <div class="modal">
+    <div class="det-top">
+      <div class="det-hero" id="d-hero"></div>
+      <div class="det-meta"><span id="d-pill" class="cpill"></span></div>
+      <div class="det-title" id="d-name"></div>
+      <div class="det-desc" id="d-desc"></div>
+    </div>
+    <div class="det-div"></div>
+    <div class="det-body" id="d-body"></div>
+    <div class="det-foot" id="d-foot"></div>
+  </div>
+</div>
+
+<!-- ADMIN MODAL -->
+<div class="bd" id="adm-bd" onclick="closeBD(event,'adm-bd')">
+  <div class="modal">
+    <div class="adm-head">
+      <div><h2 id="adm-title">Legg til forening</h2><p id="adm-sub">Fyll inn manuelt eller la KI hente info fra nettside</p></div>
+      <button class="closex" onclick="closeM('adm-bd')">✕</button>
+    </div>
+    <div class="adm-body">
+      <div class="aipanel">
+        <div class="aipanel-head"><span style="font-size:17px">✨</span><h3>KI-assistent</h3><span class="ai-badge">Beta</span></div>
+        <p class="aipanel-sub">Lim inn nettadressen — KI henter navn, beskrivelse, kontaktinfo og adresse automatisk.</p>
+        <div class="ai-irow">
+          <input class="ai-inp" type="url" id="ai-url" placeholder="https://foreningsnavn.no">
+          <button class="btn btn-blue" onclick="runScrape()" id="scrape-btn">✨ Hent info</button>
+        </div>
+        <div class="ai-steps" id="ai-steps">
+          <div class="step" id="s1"><div class="sdot">1</div>Henter nettside…</div>
+          <div class="step" id="s2"><div class="sdot">2</div>Analyserer innhold…</div>
+          <div class="step" id="s3"><div class="sdot">3</div>Fyller ut skjema…</div>
+        </div>
+        <div class="ai-sep">eller beskriv med ord</div>
+        <div class="ai-irow">
+          <input class="ai-inp" type="text" id="ai-free" placeholder="F.eks: Tønsberg Tennisklubb, idrett, alle aldre…">
+          <button class="btn btn-outline" onclick="runFree()">✨ Generer</button>
+        </div>
+      </div>
+      <div class="fsec">
+        <div class="fstitle">Grunninfo</div>
+        <div class="frow">
+          <div class="fg"><label>Navn *</label><input class="field" type="text" id="f-name" placeholder="Foreningens navn"></div>
+          <div class="fg"><label>Kategori *</label>
+            <select class="field" id="f-cat">
+              <option value="idrett">⚽ Idrett</option><option value="kultur">🎭 Kultur</option>
+              <option value="natur">🌿 Natur & friluft</option><option value="frivillighet">🤝 Frivillighet</option>
+              <option value="ungdom">🌟 Ungdom</option><option value="senior">☀️ Senior</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg"><label>Beskrivelse</label><textarea class="field" id="f-desc" placeholder="Kort og inviterende beskrivelse…"></textarea><button class="ai-micro" onclick="improveDesc()">✨ Forbedre tekst</button></div>
+      </div>
+      <div class="fsec">
+        <div class="fstitle">Kontakt & sted</div>
+        <div class="frow">
+          <div class="fg"><label>Kontaktperson</label><input class="field" type="text" id="f-contact" placeholder="Navn"></div>
+          <div class="fg"><label>E-post</label><input class="field" type="email" id="f-email" placeholder="post@forening.no"></div>
+        </div>
+        <div class="frow">
+          <div class="fg"><label>Nettside</label><input class="field" type="url" id="f-web" placeholder="https://…"></div>
+          <div class="fg"><label>Adresse / møtested</label><input class="field" type="text" id="f-address" placeholder="Gateveien 1, Tønsberg"><button class="ai-micro" onclick="findAddr()">✨ Finn adresse</button></div>
+        </div>
+      </div>
+      <div class="fsec" style="margin-bottom:0">
+        <div class="fstitle">Detaljer</div>
+        <div class="frow">
+          <div class="fg"><label>Antall medlemmer</label><input class="field" type="text" id="f-members" placeholder="ca. 200"></div>
+          <div class="fg"><label>Aldersgruppe</label><input class="field" type="text" id="f-age" placeholder="Alle / 13–19 år"></div>
+        </div>
+      </div>
+    </div>
+    <div class="adm-foot">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="closeM('adm-bd')">Avbryt</button>
+        <button class="btn btn-red btn-sm" id="del-btn" style="display:none" onclick="delOrg()">🗑 Slett</button>
+      </div>
+      <button class="btn btn-blue" onclick="saveOrg()">Lagre forening</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const C = {
+  idrett:      {l:'Idrett',          e:'⚽', p:'ci', bg:'ci-bg'},
+  kultur:      {l:'Kultur',          e:'🎭', p:'ck', bg:'ck-bg'},
+  natur:       {l:'Natur & friluft', e:'🌿', p:'cn', bg:'cn-bg'},
+  frivillighet:{l:'Frivillighet',    e:'🤝', p:'cf', bg:'cf-bg'},
+  ungdom:      {l:'Ungdom',          e:'🌟', p:'cu', bg:'cu-bg'},
+  senior:      {l:'Senior',          e:'☀️', p:'cs', bg:'cs-bg'},
+};
+
+// Real organisations from Tønsberg and surroundings
+let DB = [
+  {id:1,  name:'Flint Tønsberg AIL', cat:'idrett',
+    desc:'Tønsbergs største idrettsklubb med seksjoner for fotball, håndball, volleyball og friidrett. Stiftet 1917 og holder til på Løveid i Tolvsrød.',
+    contact:'Mona Habbestad', email:'post@ilflint.no', web:'https://www.ilflint.no',
+    address:'Ulvikveien 12, 3152 Tolvsrød', members:'~2000', age:'5+',
+    lat:59.2731, lng:10.3812},
+  {id:2,  name:'Tønsberg Fotballklubb', cat:'idrett',
+    desc:'Profesjonell fotballklubb i Tønsberg med lag for alle aldre. Spiller hjemmekamper på Tønsberg Gressbane.',
+    contact:'Daglig leder', email:'post@tonsbergfk.no', web:'https://www.tonsbergfk.no',
+    address:'Tønsberg Gressbane, Tønsberg', members:'~500', age:'6+',
+    lat:59.2654, lng:10.4021},
+  {id:3,  name:'FK Eik Tønsberg', cat:'idrett',
+    desc:'Fotballklubb med lang historie i Tønsberg. Tilbyr fotball for barn, ungdom og voksne på alle nivåer.',
+    contact:'Daglig leder', email:'post@fkeiktonsberg.no', web:'https://fkeiktonsberg.no',
+    address:'Eik, Tønsberg', members:'~600', age:'5+',
+    lat:59.2592, lng:10.3723},
+  {id:4,  name:'Tønsberg Svømmeklubb', cat:'idrett',
+    desc:'Svømmeklubb med aktiviteter i Tønsberg svømmehall, Eik svømmehall og Ringshaug ungdomsskole. Trenings- og konkurransesvømming for alle aldre.',
+    contact:'Styret', email:'', web:'',
+    address:'Storgaten 20, 3. etg, Tønsberg', members:'~300', age:'5+',
+    lat:59.2673, lng:10.4086},
+  {id:5,  name:'DNT Tønsberg og Omegn', cat:'natur',
+    desc:'Arrangerer over 350 turer, kurs og friluftsarrangementer i året. Tilbud for alle aldre — fra Barnas Turlag til DNT Senior. Driver syv hytter i regionen.',
+    contact:'Administrasjonen', email:'mats.kneppen@dnt.no', web:'https://www.dnt.no/vestfold',
+    address:'Tønsberg', members:'~1500', age:'Alle',
+    lat:59.2702, lng:10.4045},
+  {id:6,  name:'Tønsberg Speidergruppe (NSF)', cat:'natur',
+    desc:'Møter hver torsdag kl. 18–19.30 i Wergelandsveien 55. Småspeidere (2.–4. kl.), speidere (4.–10. kl.) og rovere (16–25 år).',
+    contact:'Espen Garder', email:'e-gard@online.no', web:'http://tonsberg.speidergruppe.org',
+    address:'Wergelandsveien 55, Tønsberg', members:'~80', age:'8–25',
+    lat:59.2741, lng:10.4189},
+  {id:7,  name:'Sjøbodkoret', cat:'kultur',
+    desc:'Blandet kor tilknyttet Norges Korforbund, stiftet 1991. 50 sangere som møtes tirsdager i Øvre Langgate. Opptrer på konserter, bryllup og arrangementer.',
+    contact:'Andreas Stensholt', email:'', web:'https://www.sjobodkoret.no',
+    address:'Øvre Langgate (Sven Foyn), Tønsberg', members:'50', age:'18+',
+    lat:59.2683, lng:10.4071},
+  {id:8,  name:'Papirhuset Teater', cat:'kultur',
+    desc:'Intimt teaterhus i Tønsberg sentrum med teatersal, blackbox og prøvesaler. Leies ut til forestillinger, kurs og kulturarrangementer.',
+    contact:'Daglig leder', email:'dagligleder@papirhusetteater.no', web:'https://www.papirhusetteater.no',
+    address:'St. Olavs gate 16B, 3126 Tønsberg', members:'', age:'Alle',
+    lat:59.2674, lng:10.4059},
+  {id:9,  name:'Tønsberg Frivilligsentral', cat:'frivillighet',
+    desc:'Møteplass for frivillige i Tjømegata. Tilbyr besøkstjeneste, matkjøring, strikkegruppe, mimreturer og ukentlig lunsj for eldre og uføre.',
+    contact:'Daglig leder', email:'', web:'https://tonsberg.frivilligsentral.no',
+    address:'Tjømegata 1C, Tønsberg', members:'~300', age:'Alle',
+    lat:59.2666, lng:10.4078},
+  {id:10, name:'Tønsberg Røde Kors', cat:'frivillighet',
+    desc:'Lokal avdeling med hjelpekorps, besøkstjeneste, leksehjelp for flyktninger og Fellesverket. Aktiviteter rettet mot barn, ungdom og eldre.',
+    contact:'Lokalavdelingen', email:'', web:'https://www.rodekors.no',
+    address:'Tønsberg', members:'~400', age:'Alle',
+    lat:59.2692, lng:10.4068},
+  {id:11, name:'Tønsberg Røde Kors Hjelpekorps', cat:'frivillighet',
+    desc:'Frivillig organisasjon for søk, redning og førstehjelp i Tønsberg og omegn. Gir opplæring i livreddende ferdigheter og bidrar til samfunnets beredskap.',
+    contact:'Styret', email:'', web:'https://www.tonsbergrkh.no',
+    address:'Tønsberg', members:'~80', age:'18+',
+    lat:59.2702, lng:10.4055},
+  {id:12, name:'Tønsberg Søppelplukkerlag', cat:'natur',
+    desc:'Frivillig lag med mål om å gjøre Tønsberg søppelfri. Arrangerer felles plukkdager og koordinerer frivillig ryddearbeid i kommunen.',
+    contact:'Frivilligsentralen', email:'', web:'https://tonsberg.frivilligsentral.no',
+    address:'Tjømegata 1C, Tønsberg', members:'~50', age:'Alle',
+    lat:59.2666, lng:10.4078},
+  {id:13, name:'Vestfold Røde Kors', cat:'frivillighet',
+    desc:'Distriktskontor for alle lokale Røde Kors-avdelinger i Vestfold. Koordinerer humanitær innsats, beredskap og opplæring i regionen.',
+    contact:'Distriktskontoret', email:'', web:'https://www.rodekors.no',
+    address:'Tønsberg', members:'', age:'Alle',
+    lat:59.2711, lng:10.4081},
+  {id:14, name:'Ung Arena Tønsberg', cat:'ungdom',
+    desc:'Kommunalt ungdomshus med åpne kvelder, aktiviteter, gaming, musikk og verksteder for ungdom fra 13–25 år. Lav terskel og alltid gratis.',
+    contact:'Daglig leder', email:'', web:'https://www.tonsberg.kommune.no',
+    address:'Tønsberg sentrum', members:'~300', age:'13–25',
+    lat:59.2681, lng:10.4092},
+  {id:15, name:'Tønsberg 4H', cat:'ungdom',
+    desc:'4H-klubb for barn og ungdom med fokus på praktiske ferdigheter, natur og fellesskap. Aktiviteter gjennom hele året med samlinger og leirer.',
+    contact:'Lokallagsleder', email:'', web:'https://4h.no',
+    address:'Tønsberg', members:'~60', age:'10–19',
+    lat:59.2645, lng:10.3955},
+  {id:16, name:'Tønsberg Pensjonistlag', cat:'senior',
+    desc:'Sosialt og aktivt lag for seniorer i Tønsberg. Ukentlige møter med kaffe, foredrag, kortspill og felles utflukter. Alle over 60 år er velkomne.',
+    contact:'Styret', email:'', web:'',
+    address:'Kulturhuset, Stoltenbergsgate, Tønsberg', members:'~160', age:'60+',
+    lat:59.2688, lng:10.4101},
+  {id:17, name:'Aktiv Senior Tønsberg (DNT)', cat:'senior',
+    desc:'DNTs seniortilbud med faste onsdagsturer og vår-/høstturer. Sosialt og inkluderende — slipper å gå alene og opplever nye områder i Vestfold.',
+    contact:'DNT Tønsberg og Omegn', email:'mats.kneppen@dnt.no', web:'https://www.dnt.no/vestfold',
+    address:'Tønsberg', members:'~120', age:'60+',
+    lat:59.2702, lng:10.4045},
+  {id:18, name:'Tønsberg Musikkorps', cat:'kultur',
+    desc:'Brasskorps med lang tradisjon i Tønsberg. Øver tirsdager og fredager, deltar i 17. mai-tog og konkurranser. Åpne for nye musikere fra 10 år.',
+    contact:'Styret', email:'', web:'',
+    address:'Tønsberg', members:'~70', age:'10+',
+    lat:59.2665, lng:10.4022},
+  {id:19, name:'Slottsfjell-festivalen', cat:'kultur',
+    desc:'En av Norges mest populære musikkfestivaler, arrangert i Tønsberg hvert år. Frivillig-drevet med hundrevis av frivillige som sikrer festivalopplevelsen.',
+    contact:'Festivalledelsen', email:'', web:'https://www.slottsfjell.no',
+    address:'Slottsfjellet, Tønsberg', members:'~400 frivillige', age:'18+',
+    lat:59.2735, lng:10.4142},
+  {id:20, name:'Nøtterøy IF', cat:'idrett',
+    desc:'Allsidig idrettsforening på Nøtterøy med seksjon for fotball, håndball og andre idretter. Tilbyr aktiviteter for barn, ungdom og voksne i Færder-regionen.',
+    contact:'Daglig leder', email:'post@noteroey-if.no', web:'https://www.noteroey-if.no',
+    address:'Nøtterøy', members:'~800', age:'5+',
+    lat:59.2198, lng:10.3845},
+];
+
+let curCat='alle', curView='grid', editId=null, aiFiltered=null;
+let leafMap=null, mapMarkers=[];
+
+function getList(){
+  let l = curCat==='alle' ? DB : DB.filter(o=>o.cat===curCat);
+  if(aiFiltered) l=l.filter(o=>aiFiltered.includes(o.id));
+  const q=document.getElementById('srch').value.trim().toLowerCase();
+  if(q&&!aiFiltered) l=l.filter(o=>o.name.toLowerCase().includes(q)||o.desc.toLowerCase().includes(q)||o.address.toLowerCase().includes(q));
+  return l;
+}
+
+function render(){
+  updateCounts();
+  const l=getList();
+  document.getElementById('s-total').textContent=DB.length;
+  document.getElementById('rlbl').innerHTML=`<strong>${l.length}</strong> forening${l.length!==1?'er':''} ${curCat!=='alle'?'· '+C[curCat]?.l:''}`;
+  document.getElementById('empty').style.display=l.length?'none':'block';
+  if(!l.length){document.getElementById('grid-view').innerHTML='';document.getElementById('list-view').innerHTML='';return;}
+  if(curView==='grid') renderGrid(l);
+  else if(curView==='list') renderList(l);
+  else if(curView==='map') renderMap(l);
+}
+
+function updateCounts(){
+  ['alle','idrett','kultur','natur','frivillighet','ungdom','senior'].forEach(k=>{
+    const el=document.getElementById('cn-'+k);
+    if(el) el.textContent=k==='alle'?DB.length:DB.filter(o=>o.cat===k).length;
+  });
+}
+
+function renderGrid(l){
+  document.getElementById('grid-view').innerHTML=l.map(o=>{
+    const c=C[o.cat];
+    return `<div class="card" onclick="openDet(${o.id})">
+      <div class="card-img ${c.bg}">${c.e}</div>
+      <div class="card-body">
+        <div class="card-top2">
+          <span class="cpill ${c.p}">${c.l}</span>
+          ${o.members?`<span style="font-size:11px;color:var(--ink-4)">👥 ${o.members}</span>`:''}
+        </div>
+        <div class="card-name">${o.name}</div>
+        <div class="card-desc">${o.desc.slice(0,110)}${o.desc.length>110?'…':''}</div>
+        <div class="card-chips">
+          ${o.age?`<span class="chip">🎂 ${o.age}</span>`:''}
+          ${o.address?`<span class="chip">📍 ${o.address.split(',')[0]}</span>`:''}
+        </div>
+        ${o.web?`<div class="card-foot"><a class="cweb" href="${o.web}" target="_blank" onclick="event.stopPropagation()">🔗 Nettside ↗</a></div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderList(l){
+  document.getElementById('list-view').innerHTML=l.map(o=>{
+    const c=C[o.cat];
+    return `<div class="lrow" onclick="openDet(${o.id})">
+      <div class="lem ${c.p}">${c.e}</div>
+      <div><div class="lname">${o.name}</div><div class="lsub">${o.address||''}</div></div>
+      <span class="lpill ${c.p}">${c.l}</span>
+      <span class="lemail">${o.email||''}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderMap(l){
+  if(!leafMap){
+    leafMap = L.map('map-el').setView([59.270, 10.408], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom:19
+    }).addTo(leafMap);
+  }
+  mapMarkers.forEach(m=>m.remove());
+  mapMarkers=[];
+  l.forEach(o=>{
+    if(!o.lat||!o.lng) return;
+    const c=C[o.cat];
+    const icon = L.divIcon({
+      className:'',
+      html:`<div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,.2);border:2px solid white" class="${c.p}">${c.e}</div>`,
+      iconSize:[32,32], iconAnchor:[16,16]
+    });
+    const m=L.marker([o.lat,o.lng],{icon}).addTo(leafMap);
+    m.bindPopup(`
+      <div class="map-popup-name">${o.name}</div>
+      <div class="map-popup-cat ${c.p}">${c.l}</div>
+      <div class="map-popup-desc">${o.desc.slice(0,90)}…</div>
+      ${o.web?`<a class="map-popup-link" href="${o.web}" target="_blank">🔗 Nettside ↗</a>`:''}
+      <br><button onclick="openDet(${o.id})" style="margin-top:8px;padding:5px 10px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">Mer info</button>
+    `);
+    mapMarkers.push(m);
+  });
+  setTimeout(()=>leafMap.invalidateSize(),100);
+}
+
+function filterCat(el,cat){
+  document.querySelectorAll('.crow').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  curCat=cat; aiFiltered=null;
+  document.getElementById('ai-banner').classList.remove('on');
+  render();
+}
+
+function mobCat(el,cat){
+  document.querySelectorAll('#mob-cats button').forEach(b=>{b.classList.remove('btn-blue');b.classList.add('btn-outline');});
+  el.classList.remove('btn-outline');el.classList.add('btn-blue');
+  document.querySelectorAll('.crow').forEach(b=>b.classList.remove('on'));
+  const sb=document.querySelector(`.crow[data-c="${cat}"]`);if(sb)sb.classList.add('on');
+  curCat=cat; aiFiltered=null;
+  document.getElementById('ai-banner').classList.remove('on');
+  render();
+}
+
+function mobView(el,v){
+  // highlight mob view btns
+  ["grid","list","map"].forEach(n=>{const b=document.getElementById("mob-vbtn-"+n);if(b){b.classList.remove("btn-blue");b.classList.add("btn-outline");}});
+  el.classList.remove("btn-outline");el.classList.add("btn-blue");
+  setView(v);
+}
+
+function setView(v){
+  curView=v;
+  ['grid','list','map'].forEach(n=>{
+    document.getElementById(n+'-view').style.display='none';
+    const b=document.getElementById('vb-'+n);
+    if(b) b.classList.remove('on');
+  });
+  const disp=v==='grid'?'grid':'block';
+  document.getElementById(v+'-view').style.display=disp;
+  const ab=document.getElementById('vb-'+v);
+  if(ab) ab.classList.add('on');
+  render();
+}
+
+function handleSearch(){ aiFiltered=null; document.getElementById('ai-banner').classList.remove('on'); render(); }
+
+/* DETAIL */
+function openDet(id){
+  const o=DB.find(x=>x.id===id); if(!o)return;
+  const c=C[o.cat];
+  document.getElementById('d-hero').className=`det-hero ${c.bg}`;
+  document.getElementById('d-hero').textContent=c.e;
+  document.getElementById('d-pill').className=`cpill ${c.p}`;
+  document.getElementById('d-pill').textContent=c.l;
+  document.getElementById('d-name').textContent=o.name;
+  document.getElementById('d-desc').textContent=o.desc;
+  const rows=[];
+  if(o.address) rows.push(dr('📍',o.address));
+  if(o.members) rows.push(dr('👥',o.members+' medlemmer'));
+  if(o.age) rows.push(dr('🎂','Aldersgruppe: '+o.age));
+  if(o.email) rows.push(dr('✉️',`<a href="mailto:${o.email}">${o.email}</a>`));
+  if(o.web) rows.push(dr('🔗',`<a href="${o.web}" target="_blank">${o.web}</a>`));
+  document.getElementById('d-body').innerHTML=rows.join('');
+  document.getElementById('d-foot').innerHTML=`
+    <button class="btn btn-outline" onclick="openEdit(${o.id});closeM('det-bd')">✏️ Rediger</button>
+    ${o.web?`<a href="${o.web}" target="_blank" class="btn btn-blue" style="text-decoration:none">Nettside ↗</a>`:''}
+    ${o.email?`<a href="mailto:${o.email}" class="btn btn-ghost" style="text-decoration:none">✉️ E-post</a>`:''}
+  `;
+  document.getElementById('det-bd').classList.add('on');
+}
+function dr(ico,txt){return `<div class="drow"><span class="drico">${ico}</span><span>${txt}</span></div>`;}
+
+/* ADMIN */
+function openAdmin(){openAdd();}
+function openAdd(){
+  editId=null;
+  document.getElementById('adm-title').textContent='Legg til forening';
+  document.getElementById('adm-sub').textContent='Fyll inn manuelt eller la KI hente informasjon fra nettside';
+  document.getElementById('del-btn').style.display='none';
+  clearForm();
+  document.getElementById('adm-bd').classList.add('on');
+}
+function openEdit(id){
+  const o=DB.find(x=>x.id===id); if(!o)return;
+  editId=id;
+  document.getElementById('adm-title').textContent='Rediger forening';
+  document.getElementById('adm-sub').textContent=o.name;
+  document.getElementById('del-btn').style.display='inline-flex';
+  document.getElementById('f-name').value=o.name||'';
+  document.getElementById('f-cat').value=o.cat||'idrett';
+  document.getElementById('f-desc').value=o.desc||'';
+  document.getElementById('f-contact').value=o.contact||'';
+  document.getElementById('f-email').value=o.email||'';
+  document.getElementById('f-web').value=o.web||'';
+  document.getElementById('f-address').value=o.address||'';
+  document.getElementById('f-members').value=o.members||'';
+  document.getElementById('f-age').value=o.age||'';
+  document.getElementById('adm-bd').classList.add('on');
+}
+function clearForm(){
+  ['name','contact','email','web','address','members','age'].forEach(f=>{const el=document.getElementById('f-'+f);if(el)el.value='';});
+  document.getElementById('f-desc').value='';
+  document.getElementById('f-cat').value='idrett';
+  document.getElementById('ai-url').value='';
+  document.getElementById('ai-free').value='';
+  resetSteps();
+  document.querySelectorAll('.field').forEach(f=>f.classList.remove('field-flash'));
+}
+function flash(id,val){
+  if(!val)return;
+  const el=document.getElementById(id);if(!el)return;
+  el.value=val;el.classList.add('field-flash');
+  setTimeout(()=>el.classList.remove('field-flash'),2200);
+}
+function saveOrg(){
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){showToast('⚠️ Navn er påkrevd');return;}
+  const data={name,cat:document.getElementById('f-cat').value,desc:document.getElementById('f-desc').value.trim(),contact:document.getElementById('f-contact').value.trim(),email:document.getElementById('f-email').value.trim(),web:document.getElementById('f-web').value.trim(),address:document.getElementById('f-address').value.trim(),members:document.getElementById('f-members').value.trim(),age:document.getElementById('f-age').value.trim(),lat:null,lng:null};
+  if(editId){const i=DB.findIndex(o=>o.id===editId);DB[i]={...DB[i],...data};showToast('✅ Forening oppdatert');}
+  else{DB.push({...data,id:Date.now()});showToast('✅ Forening lagt til');}
+  closeM('adm-bd');render();
+}
+function delOrg(){
+  if(!editId)return;
+  const o=DB.find(x=>x.id===editId);
+  if(!confirm(`Slett "${o?.name}"?`))return;
+  DB=DB.filter(x=>x.id!==editId);
+  closeM('adm-bd');render();showToast('🗑 Forening slettet');
+}
+
+/* AI SCRAPE */
+async function runScrape(){
+  const url=document.getElementById('ai-url').value.trim();
+  if(!url){showToast('Lim inn nettadresse først');return;}
+  const btn=document.getElementById('scrape-btn');
+  btn.innerHTML='<span class="spin"></span> Henter…';btn.disabled=true;
+  document.getElementById('ai-steps').classList.add('on');
+  setStep('s1','active');
+  try{
+    let content='';
+    try{
+      const pr=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url));
+      const j=await pr.json();
+      content=(j.contents||'').replace(/<script[^>]*>[\s\S]*?<\/script>/gi,' ').replace(/<style[^>]*>[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,4000);
+    }catch{content='[Nettside utilgjengelig]';}
+    setStep('s1','done');setStep('s2','active');
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:'Ekstraher info om frivillig forening i Tønsberg/Vestfold. Svar KUN med JSON:\n{"name":"","cat":"idrett|kultur|natur|frivillighet|ungdom|senior","desc":"2-3 setninger norsk","contact":"","email":"","address":"","members":"","age":"","confidence":"high|medium|low"}',messages:[{role:'user',content:`URL: ${url}\nInnhold:\n${content}`}]})});
+    setStep('s2','done');setStep('s3','active');
+    const d=await r.json();
+    const raw=d.content?.find(b=>b.type==='text')?.text||'{}';
+    const p=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    flash('f-name',p.name);if(p.cat&&C[p.cat])document.getElementById('f-cat').value=p.cat;
+    flash('f-desc',p.desc);flash('f-contact',p.contact);flash('f-email',p.email);flash('f-address',p.address);flash('f-members',p.members);flash('f-age',p.age);
+    setStep('s3','done');
+    showToast(p.confidence==='high'?'✅ Info hentet — kontroller og lagre':'⚠️ Delvis info — kontroller feltene');
+  }catch(e){showToast('❌ Feil ved henting');resetSteps();}
+  finally{btn.innerHTML='✨ Hent info';btn.disabled=false;}
+}
+async function runFree(){
+  const txt=document.getElementById('ai-free').value.trim();
+  if(!txt){showToast('Beskriv foreningen først');return;}
+  showToast('✨ Genererer…');
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,system:'Generer foreningsdata. KUN JSON: {"name":"","cat":"idrett|kultur|natur|frivillighet|ungdom|senior","desc":"2-3 setninger norsk","age":""}',messages:[{role:'user',content:`Forening: ${txt}`}]})});
+    const d=await r.json();
+    const raw=d.content?.find(b=>b.type==='text')?.text||'{}';
+    const p=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    flash('f-name',p.name);if(p.cat)document.getElementById('f-cat').value=p.cat;flash('f-desc',p.desc);flash('f-age',p.age);
+    showToast('✅ Generert — legg til kontaktinfo og lagre');
+  }catch{showToast('❌ Genereringsfeil');}
+}
+async function improveDesc(){
+  const desc=document.getElementById('f-desc').value.trim();
+  const name=document.getElementById('f-name').value.trim();
+  if(!desc&&!name){showToast('Fyll inn navn eller beskrivelse først');return;}
+  showToast('✨ Forbedrer tekst…');
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:400,system:'Forbedre foreningsbeskrivelse. Varm, inkluderende tone. Maks 3 setninger norsk. KUN teksten.',messages:[{role:'user',content:`Forening: ${name}\nBeskrivelse: ${desc}`}]})});
+    const d=await r.json();
+    const improved=d.content?.find(b=>b.type==='text')?.text||'';
+    flash('f-desc',improved.trim());showToast('✅ Tekst forbedret');
+  }catch{showToast('❌ Feil');}
+}
+async function findAddr(){
+  const name=document.getElementById('f-name').value.trim();
+  const web=document.getElementById('f-web').value.trim();
+  if(!name){showToast('Fyll inn foreningsnavn først');return;}
+  showToast('✨ Søker etter adresse…');
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,tools:[{type:'web_search_20250305',name:'web_search'}],system:'Finn fysisk adresse for frivillig forening i Tønsberg/Vestfold. KUN adressen, ingenting annet.',messages:[{role:'user',content:`Forening: ${name}${web?' Nettside: '+web:''}`}]})});
+    const d=await r.json();
+    const addr=d.content?.filter(b=>b.type==='text').map(b=>b.text).join(' ').trim();
+    if(addr&&addr.length>3){flash('f-address',addr);showToast('📍 Adresse funnet');}
+    else showToast('⚠️ Fant ikke sikker adresse');
+  }catch{showToast('❌ Feil');}
+}
+
+/* UTILS */
+function setStep(id,state){
+  const el=document.getElementById(id);if(!el)return;
+  el.className='step '+state;
+  if(state==='done') el.querySelector('.sdot').textContent='✓';
+}
+function resetSteps(){
+  document.getElementById('ai-steps').classList.remove('on');
+  ['s1','s2','s3'].forEach((id,i)=>{const el=document.getElementById(id);if(el){el.className='step';el.querySelector('.sdot').textContent=i+1;}});
+}
+function closeM(id){document.getElementById(id).classList.remove('on');}
+function closeBD(e,id){if(e.target===e.currentTarget)closeM(id);}
+let toastT;
+function showToast(m){
+  const el=document.getElementById('toast');el.textContent=m;el.classList.add('on');
+  clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on'),2800);
+}
+
+setView('grid');render();
+</script>
+</body>
+</html>
